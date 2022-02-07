@@ -62,15 +62,21 @@ func consumePage(url, hash, token string) (string, int, time.Duration, time.Dura
 
 	t2 := time.Now()
 
-	var result ResultSet
+	// Normally would decode to a ResultSet object to have direct access to all
+	// the decoded data.  Since only want nextToken and recordCount, generic
+	// decoding is faster (~75% of the full decoding time)
+	var result map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return "", 0, time.Duration(0), time.Duration(0), err
 	}
 
+	nextToken := result["meta"].(map[string]interface{})["next"].(string)
+	recordCount := len(result["data"].(map[string]interface{})["records"].([]interface{}))
+
 	t3 := time.Now()
 
-	return result.Meta.NextToken, len(result.Data.Records), t2.Sub(t1), t3.Sub(t2), nil
+	return nextToken, recordCount, t2.Sub(t1), t3.Sub(t2), nil
 }
 
 // consumeAllPages retrieves all the pages for the given (hash, firstToken), returning the total
